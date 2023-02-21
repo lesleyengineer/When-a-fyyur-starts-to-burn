@@ -21,65 +21,66 @@ from models import *
 # App Config.
 # ----------------------------------------------------------------------------#
 
-app = Flask(__name__)
-moment = Moment(app)
-app.config.from_object('config')
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+# app = Flask(__name__)
+# moment = Moment(app)
+# app.config.from_object('config')
+# # db = SQLAlchemy(app)
+# db.init_app(app)
+# migrate = Migrate(app, db)
 
 # TODO: connect to a local postgresql database - DONE
 
 
-class Venue(db.Model):
-    __tablename__ = 'Venue'
+# class Venue(db.Model):
+#     __tablename__ = 'Venue'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    genres = db.Column(db.ARRAY(db.String()), nullable=False)
-    address = db.Column(db.String(120))
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    website = db.Column(db.String(120))
-    facebook_link = db.Column(db.String(120))
-    seeking_talent = db.Column(db.String(120), nullable=False, default=False)
-    seeking_description = db.Column(db.String(120))
-    shows = db.relationship('Shows', backref='Venue', lazy=True)
+#     id = db.Column(db.Integer, primary_key=True)
+#     name = db.Column(db.String)
+#     genres = db.Column(db.ARRAY(db.String()), nullable=False)
+#     address = db.Column(db.String(120))
+#     city = db.Column(db.String(120))
+#     state = db.Column(db.String(120))
+#     phone = db.Column(db.String(120))
+#     image_link = db.Column(db.String(500))
+#     website = db.Column(db.String(120))
+#     facebook_link = db.Column(db.String(120))
+#     seeking_talent = db.Column(db.String(120), nullable=False, default=False)
+#     seeking_description = db.Column(db.String(120))
+#     shows = db.relationship('Shows', backref='Venue', lazy=True)
 
-# TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-
-class Artist(db.Model):
-    __tablename__ = 'Artists'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    genres = db.Column(db.ARRAY(db.String()), nullable=False)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    website = db.Column(db.String(120))
-    facebook_link = db.Column(db.String(120))
-    seeking_venue = db.Column(db.String(120), nullable=False, default=False)
-    seeking_description = db.Column(db.String(120))
-    shows = db.relationship('Shows', backref='Artists', lazy=True)
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
+# # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 
-class Shows(db.Model):
-    __tablename__ = 'Shows'
+# class Artist(db.Model):
+#     __tablename__ = 'Artists'
 
-    id = db.Column(db.Integer, primary_key=True)
-    artist_id = db.Column(db.Integer, db.ForeignKey(
-        'Artists.id'), nullable=False)
-    venue_id = db.Column(db.Integer, db.ForeignKey(
-        'Venue.id'), nullable=False)
-    # start_time = db.Column(db.Datetime, nullable=False)
+#     id = db.Column(db.Integer, primary_key=True)
+#     name = db.Column(db.String)
+#     genres = db.Column(db.ARRAY(db.String()), nullable=False)
+#     city = db.Column(db.String(120))
+#     state = db.Column(db.String(120))
+#     phone = db.Column(db.String(120))
+#     image_link = db.Column(db.String(500))
+#     website = db.Column(db.String(120))
+#     facebook_link = db.Column(db.String(120))
+#     seeking_venue = db.Column(db.String(120), nullable=False, default=False)
+#     seeking_description = db.Column(db.String(120))
+#     shows = db.relationship('Shows', backref='Artists', lazy=True)
+
+#     # TODO: implement any missing fields, as a database migration using Flask-Migrate
+
+# # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
+
+
+# class Shows(db.Model):
+#     __tablename__ = 'Shows'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     artist_id = db.Column(db.Integer, db.ForeignKey(
+#         'Artists.id'), nullable=False)
+#     venue_id = db.Column(db.Integer, db.ForeignKey(
+#         'Venue.id'), nullable=False)
+#     # start_time = db.Column(db.Datetime, nullable=False)
 
 
 # ----------------------------------------------------------------------------#
@@ -158,16 +159,35 @@ def show_venue(venue_id):
 
     venue = Venue.query.get(venue_id)
 
-    show = show.query.filter_by(venue_id=venue_id).all()
-
     current_time = datetime.now()
 
-    upcoming_shows = db.session.query(show).join(Venue).filter(
-        show.artist_id == artist_id).filter
-    (show.start_time > datetime.now()).all()
-    past_shows = db.session.query(show).join(Venue).filter(
-        show.artist_id == artist_id).filter
-    (show.start_time > datetime.now()).all()
+    upcoming_shows = db.session.query(Shows).join(Venue).filter(
+        Shows.venue_id == venue_id).filter
+    (Shows.start_time > datetime.now()).all()
+
+    for show in upcoming_shows:
+        if show.start_time > datetime.now():
+            upcoming_shows.append({
+                'artist_id': show.artists_id,
+                'artist_name': Artist.query.filter_by(id=show.artist_id).first().name,
+                'artist_image_link': Artist.query.filter_by(id=show.artist_id).first().image_link,
+                'start_time': format_datetime(str(show.start_time))
+            })
+        return upcoming_shows
+
+    past_shows = db.session.query(Shows).join(Venue).filter(
+        Shows.venue_id == venue_id).filter
+    (Shows.start_time > datetime.now()).all()
+
+    for show in past_shows:
+        if show.start_time < datetime.now():
+            past_shows.append({
+                'artist_id': show.artists_id,
+                'artist_name': Artist.query.filter_by(id=show.artist_id).first().name,
+                'artist_image_link': Artist.query.filter_by(id=show.artist_id).first().image_link,
+                'start_time': format_datetime(str(show.start_time))
+            })
+        return past_shows
 
     # shows the venue page with the given venue_id
     # TODO: replace with real venue data from the venues table, using venue_id
@@ -294,8 +314,42 @@ def search_artists():
 def show_artist(artist_id):
     # shows the artist page with the given artist_id
     # TODO: replace with real artist data from the artist table, using artist_id
+
+    artist = Artist.query.get(artist_id)
+
+    current_time = datetime.now()
+
+    upcoming_shows = db.session.query(Shows).join(Artist).filter(
+        Shows.artist_id == artist_id).filter
+    (Shows.start_time > datetime.now()).all()
+
+    for show in upcoming_shows:
+        if show.start_time > datetime.now():
+            upcoming_shows.append({
+                'venue_id': show.venue_id,
+                'venue_name': Venue.query.filter_by(id=show.venue_id).first().name,
+                'venue_image_link': Artist.query.filter_by(id=show.venue_id).first().image_link,
+                'start_time': format_datetime(str(show.start_time))
+            })
+        return upcoming_shows
+
+    past_shows = db.session.query(Shows).join(Artist).filter(
+        Shows.artist_id == artist_id).filter
+    (Shows.start_time > datetime.now()).all()
+
+    for show in past_shows:
+        if show.start_time < datetime.now():
+            past_shows.append({
+                'venue_id': show.venue_id,
+                'venue_name': Venue.query.filter_by(id=show.venue_id).first().name,
+                'venue_image_link': Artist.query.filter_by(id=show.venue_id).first().image_link,
+                'start_time': format_datetime(str(show.start_time))
+            })
+        return past_shows
+
     data = Artist.query.get(artist_id)
     return render_template('pages/show_artist.html', artist=data)
+
 
 #  Update
 #  ----------------------------------------------------------------
